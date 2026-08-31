@@ -111,6 +111,24 @@
         }, STALL_SECONDS * 1000);
     }
 
+    // 換源是整頁跳轉，新頁面沒有使用者互動紀錄 → 瀏覽器會擋自動播放。
+    // 影片明明載好了卻停著，長輩不會知道要按播放，所以給一個大按鈕。
+    var autoplayHandled = false;
+    function ensurePlaying() {
+        if (autoplayHandled) return;
+        var v = document.querySelector('video');
+        if (!v || v.readyState < 3 || !v.paused) return;
+        autoplayHandled = true;
+        var p = v.play();
+        if (p && p.catch) p.catch(function () {
+            notice('<div style="font-size:30px;margin-bottom:18px">影片已經準備好了</div>' +
+                   '<button id="elderBigPlay" style="background:#ffd400;color:#000;font-weight:700;' +
+                   'font-size:34px;padding:20px 48px;border-radius:12px;min-height:72px">▶ 開始播放</button>');
+            var b = document.getElementById('elderBigPlay');
+            if (b) b.onclick = function () { v.play(); hideNotice(); };
+        });
+    }
+
     function start() {
         if (!urlLooksPlayable()) {
             notice('<div style="font-size:30px;margin-bottom:10px">⏳ 這個來源播不了</div><div>正在自動換一個來源，請稍等…</div>');
@@ -120,6 +138,7 @@
         watchdog();
         // 播放順利就清掉紀錄，下次重新開始算
         var iv = setInterval(function () {
+            ensurePlaying();
             var v = document.querySelector('video');
             if (v && v.currentTime > 2) { clearTried(); hideNotice(); clearInterval(iv); }
         }, 2000);
