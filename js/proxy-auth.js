@@ -118,9 +118,28 @@ window.addEventListener('storage', (e) => {
     }
 });
 
+/**
+ * 同步版本：用于 <img src> 等无法 await 的场景
+ * 哈希来源与 getPasswordHash 一致，但只取同步可得的两处
+ */
+function addAuthToProxyUrlSync(url) {
+    try {
+        const hash = cachedPasswordHash
+            || localStorage.getItem('proxyAuthHash')
+            || (window.__ENV__ && window.__ENV__.PASSWORD)
+            || null;
+        if (!hash) return url;
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}auth=${encodeURIComponent(hash)}&t=${Date.now()}`;
+    } catch (error) {
+        return url;
+    }
+}
+
 // 导出函数
 window.ProxyAuth = {
     addAuthToProxyUrl,
+    addAuthToProxyUrlSync,
     validateProxyAuth,
     clearAuthCache,
     getPasswordHash
