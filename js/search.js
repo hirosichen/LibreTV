@@ -1,4 +1,6 @@
 async function searchByAPIAndKeyWord(apiId, query) {
+    // 採集源資料庫皆為簡體，繁體關鍵字先轉簡體再送出（簡體輸入不受影響）
+    if (window.ZhConv && typeof query === 'string') query = window.ZhConv.t2s(query);
     try {
         let apiUrl, apiName, apiBaseUrl;
         
