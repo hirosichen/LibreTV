@@ -1,0 +1,67 @@
+/* ── 長輩模式 ──────────────────────────────────────────────
+   套在 <html class="elder"> 上。Tailwind 的 utility 皆以 rem 計算，
+   因此改根字級即可等比放大字、間距、按鈕高度。
+   設計目標同時滿足：桌機長輩使用 + 之後 Android 電視盒遙控器操作。
+   ────────────────────────────────────────────────────────── */
+
+html.elder { font-size: 22px; }
+
+/* 卡片放大：欄數減少，每張海報更大更好按 */
+html.elder #douban-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1.25rem !important;
+}
+@media (min-width: 768px)  { html.elder #douban-results { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }
+@media (min-width: 1280px) { html.elder #douban-results { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } }
+
+html.elder #results {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+    gap: 1.25rem !important;
+}
+@media (min-width: 768px)  { html.elder #results { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+@media (min-width: 1280px) { html.elder #results { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }
+
+/* 點擊區至少 56px（遙控器與長輩手指都夠用） */
+html.elder button,
+html.elder [role="button"],
+html.elder #douban-tags > *,
+html.elder .episode-btn {
+    min-height: 56px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+/* 卡片本身不強制高度（海報自有比例） */
+html.elder #douban-results button,
+html.elder #douban-results [role="button"],
+html.elder #results button,
+html.elder #results [role="button"] { min-height: 0; padding: 0; }
+
+html.elder input[type="checkbox"] {
+    width: 28px; height: 28px;
+    accent-color: #ffffff;
+}
+
+/* 焦點框：遙控器導航的命脈，必須一眼看得到 */
+html.elder :focus-visible,
+html.elder .elder-focus {
+    outline: 5px solid #ffd400 !important;
+    outline-offset: 3px !important;
+    border-radius: 6px;
+}
+html.elder .elder-focus { scroll-margin: 25vh; }
+
+/* 最小字級保護：把 12px/14px 的殘留拉到看得清楚 */
+html.elder .text-xs  { font-size: 0.85rem !important; }
+html.elder .text-sm  { font-size: 0.95rem !important; }
+
+/* 進階設定：預設收起，避免長輩誤觸 */
+html.elder .elder-advanced { display: none !important; }
+html.elder.elder-show-advanced .elder-advanced { display: block !important; }
+
+/* 自動換源提示 */
+.elder-notice {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    background: rgba(0,0,0,.92); border: 3px solid #ffd400; border-radius: 14px;
+    color: #fff; font-size: 26px; line-height: 1.6; padding: 28px 36px;
+    z-index: 9999; text-align: center; max-width: 80vw;
+}
