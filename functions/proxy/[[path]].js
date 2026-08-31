@@ -164,6 +164,18 @@ export async function onRequest(context) {
         }
     }
 
+    // 判断是否为二进制内容（图片/字体/音视频等），这类内容不能按文本读取
+    function isBinaryContentType(contentType) {
+        const ct = (contentType || '').toLowerCase();
+        if (!ct) return false;
+        if (ct.startsWith('text/')) return false;
+        if (ct.includes('json') || ct.includes('xml') || ct.includes('javascript')
+            || ct.includes('mpegurl') || ct.includes('m3u')) return false;
+        return ct.startsWith('image/') || ct.startsWith('font/')
+            || ct.startsWith('audio/') || ct.startsWith('video/')
+            || ct.includes('octet-stream') || ct.includes('pdf') || ct.includes('zip');
+    }
+
     // 创建标准化的响应
     function createResponse(body, status = 200, headers = {}) {
         const responseHeaders = new Headers(headers);
@@ -269,9 +281,16 @@ export async function onRequest(context) {
                  throw new Error(`HTTP error ${response.status}: ${response.statusText}. URL: ${targetUrl}. Body: ${errorBody.substring(0, 150)}`);
             }
 
+            const contentType = response.headers.get('Content-Type') || '';
+
+            // 二进制内容（图片等）按文本读取会被 UTF-8 替换字符破坏，这里原样透传
+            if (isBinaryContentType(contentType)) {
+                logDebug(`二进制内容直接透传: ${targetUrl}, Content-Type: ${contentType}`);
+                return { binaryResponse: response, contentType, responseHeaders: response.headers };
+            }
+
             // 读取响应内容为文本
             const content = await response.text();
-            const contentType = response.headers.get('Content-Type') || '';
             logDebug(`请求成功: ${targetUrl}, Content-Type: ${contentType}, 内容长度: ${content.length}`);
             return { content, contentType, responseHeaders: response.headers }; // 同时返回原始响应头
 
@@ -539,7 +558,22 @@ export async function onRequest(context) {
         }
 
         // --- 实际请求 ---
-        const { content, contentType, responseHeaders } = await fetchContentWithType(targetUrl);
+        const fetched = await fetchContentWithType(targetUrl);
+
+        // 二进制内容（图片/字体/音视频）：原样透传，不入 KV 缓存
+        if (fetched.binaryResponse) {
+            const binHeaders = new Headers(fetched.responseHeaders);
+            binHeaders.set('Cache-Control', `public, max-age=${CACHE_TTL}`);
+            binHeaders.set('Access-Control-Allow-Origin', '*');
+            binHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
+            binHeaders.set('Access-Control-Allow-Headers', '*');
+            binHeaders.delete('content-security-policy');
+            binHeaders.delete('x-frame-options');
+            binHeaders.delete('set-cookie');
+            return new Response(fetched.binaryResponse.body, { status: 200, headers: binHeaders });
+        }
+
+        const { content, contentType, responseHeaders } = fetched;
 
         // --- 写入缓存 (KV) ---
         if (kvNamespace) {
