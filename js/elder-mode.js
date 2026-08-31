@@ -108,6 +108,7 @@
         if (best) setFocus(best);
     }
 
+    var lastEnter = 0;
     var DIRS = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
 
     document.addEventListener('keydown', function (e) {
@@ -128,10 +129,18 @@
         }
         if (e.key === 'Enter' && ae && ae !== document.body) {
             if (typing) return;
-            if (!/^(BUTTON|A)$/.test(ae.tagName) && ae.getAttribute('onclick')) {
-                e.preventDefault();
-                ae.click();
-            }
+            // 不能假設瀏覽器會把 Enter 轉成 click：實測本環境的原生 <button> 不會，
+            // Android TV 盒的 DPAD 中鍵行為也因機而異。這裡先等一小段，
+            // 若原生 click 已經發生就不重複觸發，沒發生才自己補上。
+            if (Date.now() - lastEnter < 400) return;
+            lastEnter = Date.now();
+            var fired = false;
+            var mark = function () { fired = true; };
+            ae.addEventListener('click', mark, true);
+            setTimeout(function () {
+                ae.removeEventListener('click', mark, true);
+                if (!fired && document.contains(ae)) ae.click();
+            }, 60);
             return;
         }
         if (e.key === 'Escape' || e.key === 'Backspace') {
