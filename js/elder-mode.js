@@ -56,8 +56,13 @@
         if (el.disabled) return false;
         var r = el.getBoundingClientRect();
         if (r.width < 6 || r.height < 6) return false;
+        // 排除被 transform 推到畫面左右之外的側邊面板（觀看歷史 / 設定）
+        // 否則遙控器會把焦點送進看不見的地方，變成死路
+        if (r.right <= 0 || r.left >= window.innerWidth) return false;
         var cs = getComputedStyle(el);
-        return cs.visibility !== 'hidden' && cs.pointerEvents !== 'none';
+        if (cs.visibility === 'hidden' || cs.pointerEvents === 'none') return false;
+        if (el.closest('[aria-hidden="true"]')) return false;
+        return true;
     }
 
     function openModal() {
