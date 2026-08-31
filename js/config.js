@@ -34,10 +34,6 @@ const API_SITES = {
         api: 'http://ffzy5.tv/api.php/provide/vod',
         name: '非凡影视'
     },
-    tyyszy: {
-        api: 'https://tyyszy.com/api.php/provide/vod',
-        name: '天涯资源'
-    },
     ckzy: {
         api: 'https://www.ckzy1.com/api.php/provide/vod',
         name: 'CK资源'
@@ -45,10 +41,6 @@ const API_SITES = {
     zy360: {
         api: 'https://360zy.com/api.php/provide/vod',
         name: '360资源'
-    },
-    jisu: {
-        api: 'https://jszyapi.com/api.php/provide/vod',
-        name: '极速资源'
     },
     mdzy: {
         api: 'https://www.mdzyapi.com/api.php/provide/vod',
@@ -61,10 +53,6 @@ const API_SITES = {
     bfzy: {
         api: 'https://bfzyapi.com/api.php/provide/vod',
         name: '暴风资源'
-    },
-    wujin: {
-        api: 'https://api.wujinapi.me/api.php/provide/vod',
-        name: '无尽资源'
     },
     ikun: {
         api: 'https://ikunzyapi.com/api.php/provide/vod',
