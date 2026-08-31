@@ -30,11 +30,21 @@ html.elder .episode-btn {
     padding-left: 1rem;
     padding-right: 1rem;
 }
-/* 卡片本身不強制高度（海報自有比例） */
+/* 海報本身就是大目標，不套 min-height（它有 2:3 比例） */
+html.elder #douban-results .aspect-\[2\/3\],
+html.elder #results .aspect-\[2\/3\] { min-height: 0; padding: 0; }
+
+/* 片名列仍要好按 */
 html.elder #douban-results button,
-html.elder #douban-results [role="button"],
-html.elder #results button,
-html.elder #results [role="button"] { min-height: 0; padding: 0; }
+html.elder #results button {
+    min-height: 48px;
+    padding: 0.4rem 0.6rem;
+    white-space: normal;      /* 不截斷片名，長輩要看得懂 */
+    line-height: 1.35;
+}
+
+/* 移除卡片上 19x22 的豆瓣外連：太小易誤觸，且會把長輩帶離站台 */
+html.elder #douban-results a[href*="douban.com"] { display: none !important; }
 
 html.elder input[type="checkbox"] {
     width: 28px; height: 28px;
