@@ -177,7 +177,9 @@
         // 遙控器 OK / 空白鍵：暫停或播放（彈窗開著時不搶，交給選單）
         document.addEventListener('keydown', function (e) {
             if (!isOn()) return;
-            if (e.key !== 'Enter' && e.key !== ' ') return;
+            var isOk = e.key === 'Enter' || e.code === 'Enter' ||
+                       e.key === ' ' || e.code === 'Space' || e.key === 'Spacebar';
+            if (!isOk) return;
             if (openModal()) return;
             var ae = document.activeElement;
             if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' ||
