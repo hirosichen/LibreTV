@@ -157,7 +157,8 @@
         if (!item) return '';
         var sub = String(item.vod_sub || '');
         if (!sub) return '';
-        var m = sub.match(/([^\/|｜,，]{1,30}?)\s*[（(](?:台|臺|台湾|台灣|臺灣)[)）]/);
+        // 括號要排除在片名之外，否則「明日之后(港) / 明日过后(台)」會整串吃進來
+        var m = sub.match(/([^\/|｜,，（()）]{1,30}?)\s*[（(](?:台|臺|台湾|台灣|臺灣)[)）]/);
         if (!m) return '';
         var name = m[1].trim();
         if (!name || !hasHan(name)) return '';
