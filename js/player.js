@@ -218,8 +218,10 @@ function initializePageContent() {
     }
 
     // 设置页面标题
-    document.title = currentVideoTitle + ' - LibreTV播放器';
-    document.getElementById('videoTitle').textContent = currentVideoTitle;
+    // 只改顯示：currentVideoTitle 是換源／進度紀錄的比對鍵，不能動
+    const shownTitle = (window.TitleAlias && window.TitleAlias.recall(currentVideoTitle)) || currentVideoTitle;
+    document.title = shownTitle + ' - LibreTV播放器';
+    document.getElementById('videoTitle').textContent = shownTitle;
 
     // 初始化播放器
     if (videoUrl) {

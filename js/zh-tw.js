@@ -32,6 +32,7 @@
         if (node.nodeType === 3) { convText(node); return; }
         if (node.nodeType !== 1) return;
         if (SKIP_TAGS[node.tagName] || node.isContentEditable) return;
+        if (node.hasAttribute && node.hasAttribute('data-nozh')) return;   // 標了就整棵子樹不轉
         convAttrs(node);
         for (var n = node.firstChild; n; n = n.nextSibling) walk(n);
     }

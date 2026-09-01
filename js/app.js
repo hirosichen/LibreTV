@@ -656,11 +656,39 @@ async function search() {
             }
         });
 
+        // 台灣片名 -> 大陸片名。採集源用大陸譯名建庫（《明天過後》在庫裡叫《后天》），
+        // 繁簡字轉換救不了譯名不同，所以直接搜不到時查別名再搜一次。
+        const t2sName = (n) => (window.ZhConv ? window.ZhConv.t2s(n || '') : (n || ''));
+        let normQ = t2sName(query).trim();
+        let aliasUsed = '';
+        const hasHit = allResults.some(it => t2sName(it.vod_name).startsWith(normQ));
+        if (!hasHit && window.TitleAlias) {
+            showLoading('找不到「' + query + '」，正在查大陸片名…');
+            let aliases = [];
+            try { aliases = await window.TitleAlias.resolve(query); } catch (e) { aliases = []; }
+            for (const alias of aliases) {
+                const rs = await Promise.all(selectedAPIs.map(apiId => searchByAPIAndKeyWord(apiId, alias)));
+                // 只收「片名開頭吻合」的，維基的別名裡混著角色名（《冰雪奇緣》會給出「阿克」），
+                // 全收會搜出完全不相干的東西。
+                const hits = [].concat.apply([], rs.map(r => Array.isArray(r) ? r : []))
+                    .filter(it => t2sName(it.vod_name).startsWith(alias));
+                if (hits.length) {
+                    const seen = {};
+                    allResults.forEach(it => { seen[(it.source_code || '') + ':' + (it.vod_id || '')] = 1; });
+                    hits.forEach(it => {
+                        const k = (it.source_code || '') + ':' + (it.vod_id || '');
+                        if (!seen[k]) { seen[k] = 1; allResults.push(it); }
+                    });
+                    aliasUsed = alias;
+                    normQ = alias;          // 排序改以實際命中的片名為準
+                    break;
+                }
+            }
+        }
+
         // 排序：先按与关键词的相关度（完全匹配 > 开头匹配 > 包含 > 其它），再按名称、来源
-        const normQ = (window.ZhConv ? window.ZhConv.t2s(query) : query).trim();
         const relevance = (item) => {
-            let n = item.vod_name || '';
-            if (window.ZhConv) n = window.ZhConv.t2s(n);
+            const n = t2sName(item.vod_name);
             if (n === normQ) return 0;
             if (n.startsWith(normQ)) return 1;
             if (n.indexOf(normQ) !== -1) return 2;
@@ -741,12 +769,21 @@ async function search() {
         }
 
         // 添加XSS保护，使用textContent和属性转义
+        const twNameMap = window.__twNames || (window.__twNames = {});
         const safeResults = allResults.map(item => {
             const safeId = item.vod_id ? item.vod_id.toString().replace(/[^\w-]/g, '') : '';
-            const safeName = (item.vod_name || '').toString()
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
+            const esc = (t) => (t || '').toString()
+                .replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            // safeName 是資料用的原名（大陸譯名），要傳給 showDetails / 換源，絕不能改。
+            // 顯示則優先用採集源自己標的台灣譯名：vod_sub 的「玩命关头(台)」。
+            const safeName = esc(item.vod_name);
+            const twRaw = window.TitleAlias ? window.TitleAlias.twName(item) : '';
+            if (twRaw) {
+                twNameMap[(item.source_code || '') + ':' + (item.vod_id || '')] = twRaw;
+                window.TitleAlias.remember(item.vod_name, twRaw);
+            }
+            const shownName = esc(twRaw) || safeName;
+            const altName = twRaw ? `<div class="text-xs text-gray-500 mb-1 truncate">片庫名稱：<span data-nozh>${safeName}</span></div>` : '';
             const sourceInfo = item.source_name ?
                 `<span class="bg-[#222] text-xs px-1.5 py-0.5 rounded-full">${item.source_name}</span>` : '';
             const sourceCode = item.source_code || '';
@@ -764,7 +801,7 @@ async function search() {
                     <div class="flex h-full">
                         ${hasCover ? `
                         <div class="relative flex-shrink-0 search-card-img-container">
-                            <img src="${item.vod_pic}" alt="${safeName}" 
+                            <img src="${item.vod_pic}" alt="${shownName}" 
                                  class="h-full w-full object-cover transition-transform hover:scale-110" 
                                  onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=无封面'; this.classList.add('object-contain');" 
                                  loading="lazy">
@@ -773,7 +810,8 @@ async function search() {
                         
                         <div class="p-2 flex flex-col flex-grow">
                             <div class="flex-grow">
-                                <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
+                                <h3 class="font-semibold mb-1 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${shownName}">${shownName}</h3>
+                                ${altName}
                                 
                                 <div class="flex flex-wrap ${hasCover ? '' : 'justify-center'} gap-1 mb-2">
                                     ${(item.type_name || '').toString().replace(/</g, '&lt;') ?
@@ -809,7 +847,12 @@ async function search() {
             `;
         }).join('');
 
-        resultsDiv.innerHTML = safeResults;
+        const aliasBanner = aliasUsed ? `
+            <div class="col-span-full mb-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-200">
+                找不到「${(query || '').replace(/</g, '&lt;')}」，這部片在片庫裡叫
+                「<span data-nozh>${aliasUsed.replace(/</g, '&lt;')}</span>」，以下是它的結果。
+            </div>` : '';
+        resultsDiv.innerHTML = aliasBanner + safeResults;
     } catch (error) {
         console.error('搜索错误:', error);
         if (error.name === 'AbortError') {
@@ -921,7 +964,11 @@ async function showDetails(id, vod_name, sourceCode) {
             ` <span class="text-sm font-normal text-gray-400">(${data.videoInfo.source_name})</span>` : '';
 
         // 不对标题进行截断处理，允许完整显示
-        modalTitle.innerHTML = `<span class="break-words">${vod_name || '未知视频'}</span>${sourceName}`;
+        // 顯示台灣片名，但 currentVideoTitle 仍用原名（換源、觀看紀錄都靠它比對）
+        const twTitle = window.TitleAlias ? (window.__twNames || {})[(sourceCode || '') + ':' + id] || window.TitleAlias.recall(vod_name) : '';
+        const shownTitle = twTitle || vod_name || '未知视频';
+        const altTitle = twTitle ? `<span class="text-sm text-gray-500 ml-2">（片庫名稱：<span data-nozh>${vod_name}</span>）</span>` : '';
+        modalTitle.innerHTML = `<span class="break-words">${shownTitle}</span>${altTitle}${sourceName}`;
         currentVideoTitle = vod_name || '未知视频';
 
         if (data.episodes && data.episodes.length > 0) {
