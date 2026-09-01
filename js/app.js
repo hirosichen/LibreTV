@@ -694,9 +694,15 @@ async function search() {
             if (n.indexOf(normQ) !== -1) return 2;
             return 3;
         };
+        // 相關度相同時，有台灣譯名的排前面：同一部片會有好幾個來源的版本，
+        // 讓使用者第一眼看到的是「捍衛戰士」而不是「壯志凌雲」。
+        const hasTw = (item) => (window.TitleAlias && window.TitleAlias.twName(item)) ? 0 : 1;
         allResults.sort((a, b) => {
             const relCompare = relevance(a) - relevance(b);
             if (relCompare !== 0) return relCompare;
+
+            const twCompare = hasTw(a) - hasTw(b);
+            if (twCompare !== 0) return twCompare;
 
             // 相关度相同则按照视频名称排序
             const nameCompare = (a.vod_name || '').localeCompare(b.vod_name || '');
