@@ -150,7 +150,46 @@
         }
     });
 
-    function init() { markAdvanced(); addToggleUI(); }
+    // ── 播放頁：暫停/播放的視覺回饋 + 遙控器 OK 鍵 ───────────
+    function initPlayer() {
+        if (!/player/.test(location.pathname)) return;
+
+        var flash = null, hideTimer = null;
+        function showFlash(icon) {
+            if (!flash) {
+                flash = document.createElement('div');
+                flash.id = 'elderPlayFlash';
+                document.body.appendChild(flash);
+            }
+            flash.textContent = icon;
+            flash.classList.add('show');
+            clearTimeout(hideTimer);
+            hideTimer = setTimeout(function () { flash.classList.remove('show'); }, 700);
+        }
+        // media 事件不冒泡，但可以被捕獲
+        document.addEventListener('play', function (e) {
+            if (e.target && e.target.tagName === 'VIDEO') showFlash('▶');
+        }, true);
+        document.addEventListener('pause', function (e) {
+            if (e.target && e.target.tagName === 'VIDEO') showFlash('❚❚');
+        }, true);
+
+        // 遙控器 OK / 空白鍵：暫停或播放（彈窗開著時不搶，交給選單）
+        document.addEventListener('keydown', function (e) {
+            if (!isOn()) return;
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            if (openModal()) return;
+            var ae = document.activeElement;
+            if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' ||
+                       ae.tagName === 'BUTTON' || ae.tagName === 'A')) return;
+            var v = document.querySelector('video');
+            if (!v) return;
+            e.preventDefault();
+            if (v.paused) v.play(); else v.pause();
+        });
+    }
+
+    function init() { markAdvanced(); addToggleUI(); initPlayer(); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
     // 設定面板是動態渲染的，內容變了要重標
