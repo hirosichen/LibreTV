@@ -154,7 +154,7 @@
     function initPlayer() {
         if (!/player/.test(location.pathname)) return;
 
-        var flash = null, hideTimer = null;
+        var flash = null, hideTimer = null, lastToggle = 0;
         function showFlash(icon) {
             if (!flash) {
                 flash = document.createElement('div');
@@ -187,6 +187,10 @@
             var v = document.querySelector('video');
             if (!v) return;
             e.preventDefault();
+            // 有些裝置（含部分電視盒）同一次按鍵會送出多個 keydown，
+            // 不去重的話會來回切換兩次、看起來像沒反應
+            if (Date.now() - lastToggle < 300) return;
+            lastToggle = Date.now();
             if (v.paused) v.play(); else v.pause();
         });
     }
