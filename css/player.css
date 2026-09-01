@@ -298,6 +298,9 @@ input:checked + .slider:before {
     z-index: 1000;
     opacity: 0;
     transition: opacity 0.3s ease;
+    /* 這層只是提示，opacity:0 時仍會攔截點擊，
+       導致點畫面正中央無法暫停/播放。純提示層不該吃事件。 */
+    pointer-events: none;
 }
 
 .shortcut-hint.show {
